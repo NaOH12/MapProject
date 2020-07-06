@@ -2,20 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:typed_data';
+import 'dart:async';
 import 'dart:ui' as ui;
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutterapp/spherize_widget.dart';
+import 'package:flutterapp/ui_elements.dart';
 import 'package:latlong/latlong.dart';
-import 'map_management.dart';
-import 'sphere_git.dart';
-import 'package:flutter/painting.dart' as painting;
-import 'dart:math';
-//import "map_widget.dart";
-//import "spherize_widget.dart";
+import 'package:user_location/user_location.dart';
 
 void main() => runApp(MyApp());
 
@@ -30,61 +24,6 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.teal,
         ),
         home: SphereMap());
-//      home: CustomPaint(painter: VertexPainter(), child: Container()),
-//    );
-//        home: Sphere(
-//          surface: 'assets/images/WorldMap.jpg',
-//          radius: 180,
-//          latitude: 0,
-//          longitude: 0,
-//        ));
-  }
-}
-
-class VertexPainter extends CustomPainter {
-  VertexPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    print("Painted");
-    int vertexCount = 3;
-    Float32List vertexList = Float32List(vertexCount * 2);
-    vertexList[0] = 0;
-    vertexList[1] = 0;
-    vertexList[2] = 0;
-    vertexList[3] = size.height;
-    vertexList[4] = size.width;
-    vertexList[5] = size.height;
-
-    Int32List rgbaList = Int32List(vertexCount);
-    rgbaList[0] = Color.fromARGB(0, 255, 255, 255).value;
-    rgbaList[1] = Color.fromARGB(255, 255, 255, 255).value;
-    rgbaList[2] = Color.fromARGB(0, 255, 255, 255).value;
-
-//    Float32List texCoords = Float32List(vertexCount * 2);
-//    texCoords[0] = 1;
-//    texCoords[1] = 2;
-//    texCoords[2] = 3;
-//    texCoords[3] = 4;
-//    texCoords[4] = 5;
-//    texCoords[5] = 6;
-
-    var gradient = RadialGradient(
-      center: const Alignment(0.7, -0.6),
-      radius: 0.2,
-      colors: [const Color(0xFFFFFF00), const Color(0xFF0099FF)],
-      stops: [0.4, 1.0],
-    );
-
-    final vertices =
-        Vertices.raw(VertexMode.triangles, vertexList, colors: rgbaList);
-
-    canvas.drawVertices(vertices, BlendMode.src, Paint());
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
   }
 }
 
@@ -96,12 +35,18 @@ class SphereMap extends StatefulWidget {
 }
 
 class _SphereMapState extends State<SphereMap> {
-  GlobalKey globalKey = GlobalKey();
-//  Spherize spherize;
-  bool hasStarted = false;
+  MapController mapController = new MapController();
+  List<Marker> markers = [];
+  StreamController<LatLng> markerlocationStream = StreamController();
+  UserLocationOptions userLocationOptions;
 
   void initState() {
     super.initState();
+  }
+
+  onTapFAB() {
+    print('Callback function has been called');
+    //userLocationOptions.updateMapLocationOnPositionChange = true;
   }
 
   void TapCallback(LatLng point) {
@@ -110,11 +55,61 @@ class _SphereMapState extends State<SphereMap> {
 
   void LongPressCallback(LatLng point) {
     print("Long pressed! at " + point.toString());
+//    mapController.move(new LatLng(51.864703, -2.245356), 12.0);
+//    setState(() {
+    markers.add(getMarker(point));
+//    });
+  }
+
+  Marker getMarker(LatLng point) {
+    return Marker(
+        point: point,
+        width: 20,
+        height: 20.0,
+        builder: (context) {
+          return GestureDetector(
+              onTap: () {
+                print("POINT HAS BEEN CLICKED!");
+              },
+              child: Stack(alignment: AlignmentDirectional.center, children: [
+                Container(
+                  height: 20.0,
+                  width: 20.0,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.7)),
+                ),
+                Container(
+                  height: 13.0,
+                  width: 13.0,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue[300].withOpacity(1)),
+                ),
+              ]));
+        });
   }
 
   @override
   Widget build(BuildContext context) {
-//    MapManager manager = MapManager(LatLng(51.870170, -2.245810));
+    var size = MediaQuery.of(context).size;
+    var scaleFactor = 0.7;
+    var spherize =
+        Spherize(size.width.toInt(), size.height.toInt(), scaleFactor);
+
+    userLocationOptions = UserLocationOptions(
+        context: context,
+        mapController: mapController,
+        markers: markers,
+        onLocationUpdate: (LatLng pos) =>
+            print("onLocationUpdate ${pos.toString()}"),
+        updateMapLocationOnPositionChange: false,
+        showMoveToCurrentLocationFloatingActionButton: false,
+        zoomToCurrentLocationOnLoad: false,
+        fabBottom: 50,
+        fabRight: 50,
+        verbose: false,
+        onTapFAB: onTapFAB);
 
     return new FutureBuilder(
         future: loadAssetImages(),
@@ -122,42 +117,49 @@ class _SphereMapState extends State<SphereMap> {
             AsyncSnapshot<Map<String, ui.Image>> snapshot) {
           if (snapshot.hasData &&
               snapshot.connectionState == ConnectionState.done) {
-            print("#### Assets Loaded ####");
-            print(
-                "Does map contain data? " + (snapshot.data != null).toString());
-            print("Does map contain overlay image? " +
-                (snapshot.data["earth_overlay"] != null).toString());
-            return FlutterMap(
-              options: new MapOptions(
+            return Material(
+                child: Stack(children: [
+              FlutterMap(
+                options: new MapOptions(
+                  spherize,
                   center: new LatLng(51.864703, -2.245356),
                   zoom: 12.0,
                   onTap: TapCallback,
                   onLongPress: LongPressCallback,
                   zoomSphereLevel: 12.0,
-                  zoomUnSphereLevel: 16.0),
-              layers: [
-                new TileLayerOptions(
+                  zoomUnSphereLevel: 15.0,
+                  plugins: [
+                    UserLocationPlugin(),
+                  ],
+                ),
+                layers: [
+                  new TileLayerOptions(snapshot.data, spherize,
 //                        urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 //            urlTemplate:
 //                "https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
 //                        urlTemplate: "https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/{z}/{x}/{y}.png100?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
 //            urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-                    urlTemplate:
-                        "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-                    subdomains: ['a', 'b', 'c'],
-                    assetImages: snapshot.data),
-                new MarkerLayerOptions(
-                  markers: [
-                    new Marker(
-                      width: 80.0,
-                      height: 80.0,
-                      point: new LatLng(51.870170, -2.245810),
-                      builder: (ctx) => new Container(),
-                    ),
-                  ],
-                ),
-              ],
-            );
+                      urlTemplate:
+                          "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+                      subdomains: ['a', 'b', 'c']),
+                  new MarkerLayerOptions(spherize, markers: markers),
+                  userLocationOptions,
+
+//                  markers: [
+//                    new Marker(
+//                      width: 80.0,
+//                      height: 80.0,
+//                      point: new LatLng(51.870170, -2.245810),
+//                      builder: (ctx) => new Container(),
+//                    ),
+//                  ],
+                ],
+                mapController: mapController,
+              ),
+//              Align(
+//                  alignment: Alignment.bottomCenter,
+//                  child: curvedTextBox()),
+            ]));
           } else {
             return Container();
           }

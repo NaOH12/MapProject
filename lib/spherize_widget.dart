@@ -52,6 +52,15 @@ class Spherize {
     return (((val / 2.0) + 0.5) * size).ceil();
   }
 
+  Offset getSpherePointFromPoint(Offset point, double effectVal) {
+    int x = point.dx.toInt();
+    int y = point.dy.toInt();
+    int mapping = y * width + x;
+    return Offset(
+        (((mappingX[mapping] - x) * effectVal) + x).toDouble(),
+        (((mappingY[mapping] - y) * effectVal) + y).toDouble());
+  }
+
   CustomPoint getPoint(
       int x, int y, int offsetX, int offsetY, double effectVal) {
     int mapping = y * width + x;

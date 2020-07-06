@@ -33,10 +33,14 @@ dependencies:
   page_transition: ^1.1.5
   sphere: ^0.0.4
 #  mapbox_gl: ^0.7.0
-  location: ^2.5.3
+#  location: ^2.5.3
 #  flutter_map: any
   flutter_map:
     path: ./flutter_map
+  user_location:
+    path: ./user_location_plugin
+  flutter_compass: any
+  
 
 
 dev_dependencies:
