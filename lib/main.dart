@@ -23,12 +23,32 @@ class MyApp extends StatelessWidget {
         theme: new ThemeData(
           primarySwatch: Colors.teal,
         ),
-        home: SphereMap());
+        home: FutureBuilder(
+            future: loadAssetImages(),
+            builder: (BuildContext context,
+                AsyncSnapshot<Map<String, ui.Image>> snapshot) {
+              if (snapshot.hasData &&
+                  snapshot.connectionState == ConnectionState.done) {
+                return SphereMap(snapshot.data);
+              } else {
+                return Container();
+              }
+            }));
+//        home: Material(
+//            child: Stack(
+//          children: [
+//            Positioned(
+//              child: Container(child: TextField(),width: 100,),
+//              bottom: 40,
+//            ),
+//          ],
+//        )));
   }
 }
 
 class SphereMap extends StatefulWidget {
-  SphereMap({Key key}) : super(key: key);
+  Map<String, ui.Image> imageAssets;
+  SphereMap(this.imageAssets, {Key key}) : super(key: key);
 
   @override
   _SphereMapState createState() => _SphereMapState();
@@ -37,11 +57,21 @@ class SphereMap extends StatefulWidget {
 class _SphereMapState extends State<SphereMap> {
   MapController mapController = new MapController();
   List<Marker> markers = [];
-  StreamController<LatLng> markerlocationStream = StreamController();
+//  StreamController<LatLng> markerlocationStream = StreamController();
   UserLocationOptions userLocationOptions;
 
   void initState() {
     super.initState();
+  }
+
+  void placeMarker(LatLng point) {
+    setState(() {
+      markers.add(getMarker(point));
+    });
+  }
+
+  void placeMarkerAtCurentPos() {
+    placeMarker(mapController.center);
   }
 
   onTapFAB() {
@@ -55,10 +85,7 @@ class _SphereMapState extends State<SphereMap> {
 
   void LongPressCallback(LatLng point) {
     print("Long pressed! at " + point.toString());
-//    mapController.move(new LatLng(51.864703, -2.245356), 12.0);
-//    setState(() {
-    markers.add(getMarker(point));
-//    });
+    placeMarker(point);
   }
 
   Marker getMarker(LatLng point) {
@@ -90,12 +117,32 @@ class _SphereMapState extends State<SphereMap> {
         });
   }
 
+  Widget buildMessageBar(double width, double height, double buttonWidth,
+      double barHeight, double spacing) {
+    double inputWidth = width - buttonWidth;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween ,
+      children: <Widget>[
+        curvedTextBox(inputWidth - (spacing * 3), barHeight),
+        sendButton(buttonWidth, barHeight, placeMarkerAtCurentPos),
+      ],
+    );
+  }
+
+  void moveToPosition(LatLng pos) {
+
+  }
+
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
-    var scaleFactor = 0.7;
+    var query = MediaQuery.of(context);
+    var size = query.size;
+    final double scaleFactor = 0.5;
     var spherize =
         Spherize(size.width.toInt(), size.height.toInt(), scaleFactor);
+    var aspectRatio = size.width / size.height;
+    var pixelRatio = query.devicePixelRatio;
+    var bottomPos = query.viewInsets.bottom;
 
     userLocationOptions = UserLocationOptions(
         context: context,
@@ -111,58 +158,44 @@ class _SphereMapState extends State<SphereMap> {
         verbose: false,
         onTapFAB: onTapFAB);
 
-    return new FutureBuilder(
-        future: loadAssetImages(),
-        builder: (BuildContext context,
-            AsyncSnapshot<Map<String, ui.Image>> snapshot) {
-          if (snapshot.hasData &&
-              snapshot.connectionState == ConnectionState.done) {
-            return Material(
-                child: Stack(children: [
-              FlutterMap(
-                options: new MapOptions(
-                  spherize,
-                  center: new LatLng(51.864703, -2.245356),
-                  zoom: 12.0,
-                  onTap: TapCallback,
-                  onLongPress: LongPressCallback,
-                  zoomSphereLevel: 12.0,
-                  zoomUnSphereLevel: 15.0,
-                  plugins: [
-                    UserLocationPlugin(),
-                  ],
-                ),
-                layers: [
-                  new TileLayerOptions(snapshot.data, spherize,
+    return Material(
+        child: Stack(children: [
+      FlutterMap(
+        options: new MapOptions(
+          spherize,
+          center: new LatLng(51.864703, -2.245356),
+          zoom: 12.0,
+          onTap: TapCallback,
+          onLongPress: LongPressCallback,
+          zoomSphereLevel: 12.0,
+          zoomUnSphereLevel: 15.0,
+          plugins: [
+            UserLocationPlugin(),
+          ],
+        ),
+        layers: [
+          new TileLayerOptions(widget.imageAssets, spherize,
 //                        urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 //            urlTemplate:
 //                "https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
 //                        urlTemplate: "https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/{z}/{x}/{y}.png100?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
 //            urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-                      urlTemplate:
-                          "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-                      subdomains: ['a', 'b', 'c']),
-                  new MarkerLayerOptions(spherize, markers: markers),
-                  userLocationOptions,
-
-//                  markers: [
-//                    new Marker(
-//                      width: 80.0,
-//                      height: 80.0,
-//                      point: new LatLng(51.870170, -2.245810),
-//                      builder: (ctx) => new Container(),
-//                    ),
-//                  ],
-                ],
-                mapController: mapController,
-              ),
-//              Align(
-//                  alignment: Alignment.bottomCenter,
-//                  child: curvedTextBox()),
-            ]));
-          } else {
-            return Container();
-          }
-        });
+              urlTemplate:
+                  "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+              subdomains: ['a', 'b', 'c']),
+          new MarkerLayerOptions(spherize, markers: markers),
+          userLocationOptions,
+        ],
+        mapController: mapController,
+      ),
+//      Positioned(child: curvedTextBox(), ),
+      Positioned(
+        child: buildMessageBar(size.width, size.height, 47, 47, 5),
+        left: 5,
+        right: 5,
+        bottom: bottomPos + 5,
+      ),
+//      Align(alignment: Alignment.bottomCenter, child: curvedTextBox()),
+    ]));
   }
 }

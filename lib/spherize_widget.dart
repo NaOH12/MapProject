@@ -22,6 +22,7 @@ class Spherize {
   Vertices circleVerts;
 //  Int32List circleRgbaList;
   bool isMappedBuilt = false;
+  double scaleFactor;
 
   static final Spherize _singleton = Spherize._internal();
 
@@ -30,6 +31,7 @@ class Spherize {
       _singleton._buildMapping(width, height, scale);
       _singleton._buildCircleMapping(width, height, 2);
       _singleton.isMappedBuilt = true;
+      _singleton.scaleFactor = scale;
     }
     return _singleton;
   }
