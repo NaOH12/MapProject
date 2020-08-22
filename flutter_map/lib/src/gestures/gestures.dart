@@ -117,9 +117,20 @@ abstract class MapGestureMixin extends State<FlutterMap>
     if (options.onLongPress == null) {
       return;
     }
+
+//    var spherePos = options.spherize
+//        .getSphereInversePoint(position.relative, mapState.spherizeVal);
+
+    // For future reference if you want to correctly find the latlng pos of the
+    // touch, you must find the inverse spherize mapping! I have not included
+    // this for the moment due the memory requirements of another large array.
+
+
     final latlng = _offsetToCrs(position.relative);
     // emit the event
-    options.onLongPress(latlng);
+    setState(() {
+      options.onLongPress(latlng);
+    });
   }
 
   LatLng _offsetToCrs(Offset offset) {

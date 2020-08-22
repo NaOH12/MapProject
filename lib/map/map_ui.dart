@@ -3,20 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/src/gestures/latlng_tween.dart';
 import 'package:flutter_map/src/spherize_tiles.dart';
+import 'package:flutterapp/network/api.dart';
+import 'package:flutterapp/post_data/post.dart';
+import 'package:flutterapp/tile_marker_plugin/tile_marker_options.dart';
+import 'package:flutterapp/tile_marker_plugin/tile_marker_plugin.dart';
 import '../ui_elements.dart';
 import 'package:latlong/latlong.dart';
 import 'package:user_location/user_location.dart';
 
-class SphereMapPage extends StatelessWidget {
-  Widget build(BuildContext context) {
+GlobalKey<_SphereMapState> sphereMapKey = GlobalKey();
 
+class HomePage extends StatelessWidget {
+  Widget build(BuildContext context) {
     return FutureBuilder(
         future: loadAssetImages(),
         builder: (BuildContext context,
             AsyncSnapshot<Map<String, ui.Image>> snapshot) {
           if (snapshot.hasData &&
               snapshot.connectionState == ConnectionState.done) {
-            return SphereMap(snapshot.data);
+            return HomeScaffold(snapshot.data, MediaQuery.of(context));
           } else {
             return Container();
           }
@@ -24,9 +29,208 @@ class SphereMapPage extends StatelessWidget {
   }
 }
 
+class HomeScaffold extends StatefulWidget {
+  final Map<String, ui.Image> imageAssets;
+  final MediaQueryData queryData;
+  HomeScaffold(this.imageAssets, this.queryData);
+
+  @override
+  _HomeScaffoldState createState() => _HomeScaffoldState();
+}
+
+class _HomeScaffoldState extends State<HomeScaffold>
+    with TickerProviderStateMixin {
+  int _prevNavIndex = 1;
+  int _navIndex = 1;
+  double _navBackgroundOpacity = 0.0;
+
+  AnimationController _navChangeController;
+  Animation _navChangeAnimation;
+//  Widget content;
+//  Widget _map;
+//  Widget _profile;
+//
+  void initState() {
+//    _map = SphereMap(widget.imageAssets, widget.queryData, key: sphereMapKey,);
+//    _profile = Container(child: Text("PROFILE"));
+    _navChangeController =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 200))
+          ..addListener(_handleNavChangeTransition);
+  }
+
+  void setNavIndex(int index) {
+    _prevNavIndex = _navIndex;
+    if (_navIndex == 1 && index == 2) {
+      sphereMapKey.currentState.beginDrawMode();
+    } else if (_navIndex == 2 && index == 1) {
+      sphereMapKey.currentState.beginSphereMode();
+    }
+
+    _startMapMoveAnimation(index);
+
+    _navIndex = index;
+  }
+
+  void _handleNavChangeTransition() {
+    setState(() {
+      _navBackgroundOpacity = _navChangeAnimation.value;
+    });
+  }
+
+  void _startMapMoveAnimation(int newIndex) {
+    var targetVal = (newIndex == 1) ? 0.0 : 1.0;
+    _navChangeAnimation =
+        Tween<double>(begin: _navBackgroundOpacity, end: targetVal)
+            .chain(CurveTween(curve: Curves.fastOutSlowIn))
+            .animate(_navChangeController);
+    _navChangeController
+      ..value = _navBackgroundOpacity
+      ..forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+//        SphereMap(widget.imageAssets, MediaQuery.of(context)),
+        (_navIndex == 0)
+            ? Container(
+                child: Text("PROFILE"),
+                color: Colors.white,
+                width: widget.queryData.size.width,
+                height: widget.queryData.size.height,
+              )
+            : SphereMap(
+                widget.imageAssets,
+                widget.queryData,
+                (_navIndex == 1),
+                key: sphereMapKey,
+              ),
+        Align(
+          alignment: FractionalOffset.bottomCenter,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.fromARGB(
+                        (_navBackgroundOpacity * 255).toInt(), 70, 120, 131),
+                    Color.fromARGB(
+                        (_navBackgroundOpacity * 255).toInt(), 40, 95, 131)
+                  ]),
+//              color: Color.fromARGB(
+//                  (_navBackgroundOpacity * 255).toInt(), 50, 50, 50),
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+            ),
+            padding: EdgeInsets.only(bottom: 10, top: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      setNavIndex(0);
+                    });
+                  },
+                  child: _navIndex == 0
+                      ? ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            return RadialGradient(
+                              center: Alignment.topCenter,
+                              radius: 1.0,
+                              colors: <Color>[
+                                Colors.orange[400],
+                                Colors.blue[200]
+                              ],
+                              tileMode: TileMode.mirror,
+                            ).createShader(bounds);
+                          },
+                          child: Icon(Icons.person, size: 30),
+                        )
+                      : Icon(
+                          Icons.person,
+                          size: 30,
+                          color: Colors.white70,
+                        ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      setNavIndex(1);
+                    });
+                  },
+                  child: _navIndex == 1
+                      ? ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            return RadialGradient(
+                              center: Alignment.bottomLeft,
+                              radius: 1.0,
+                              colors: <Color>[
+                                Colors.greenAccent[400],
+                                Colors.blueAccent[200]
+                              ],
+                              tileMode: TileMode.mirror,
+                            ).createShader(bounds);
+                          },
+                          child: Icon(Icons.language, size: 50),
+                        )
+                      : Icon(
+                          Icons.language,
+                          size: 50,
+                          color: Colors.white70,
+                        ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      setNavIndex(2);
+                    });
+                  },
+                  child: _navIndex == 2
+                      ? ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            return RadialGradient(
+                              center: Alignment.bottomLeft,
+                              radius: 1.0,
+                              colors: <Color>[
+                                Colors.orangeAccent[400],
+                                Colors.brown[200]
+                              ],
+                              tileMode: TileMode.mirror,
+                            ).createShader(bounds);
+                          },
+                          child: Icon(Icons.brush, size: 30),
+                        )
+                      : Icon(
+                          Icons.brush,
+                          size: 30,
+                          color: Colors.white70,
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _navChangeController.dispose();
+    super.dispose();
+  }
+}
+
 class SphereMap extends StatefulWidget {
   final Map<String, ui.Image> imageAssets;
-  SphereMap(this.imageAssets, {Key key}) : super(key: key);
+  final MediaQueryData queryData;
+  final bool isSphere;
+  SphereMap(this.imageAssets, this.queryData, this.isSphere, {Key key})
+      : super(key: key);
 
   @override
   _SphereMapState createState() => _SphereMapState();
@@ -35,20 +239,76 @@ class SphereMap extends StatefulWidget {
 class _SphereMapState extends State<SphereMap> with TickerProviderStateMixin {
   MapController mapController = new MapController();
   List<Marker> markers = [];
-  UserLocationOptions userLocationOptions;
+//  UserLocationOptions _userLocationOptions;
+  TileLayerOptions _tileLayerOptions;
+  TileMarkerLayerOptions _tileMarkerLayerOptions;
+  MarkerLayerOptions _markerLayerOptions;
+
+  Network network = Network();
 
   AnimationController _doubleTapController;
   Animation _doubleTapZoomAnimation;
   Animation _doubleTapCenterAnimation;
 
+  Size _size;
+  Spherize _spherize;
+  double _scaleFactor;
+
   final double zoomSphereLevel = 12.0;
-  final double zoomUnSphereLevel = 15.0;
+  final double zoomUnSphereLevel = 16.0;
+
+  String _textFieldData = "";
+
+  // 0 -
+  // 1 - sphere level map
+  // 2 - graffiti level
+  int _navBarIndex = 1;
 
   void initState() {
     super.initState();
     _doubleTapController =
         AnimationController(vsync: this, duration: Duration(milliseconds: 200))
           ..addListener(_handleMapMoveAnimation);
+
+    _size = widget.queryData.size;
+    _scaleFactor = _size.width / _size.height;
+    _spherize =
+        Spherize(_size.width.toInt(), _size.height.toInt(), _scaleFactor);
+
+//    _userLocationOptions = UserLocationOptions(null,
+//        context: context,
+//        mapController: mapController,
+//        markers: markers,
+//        onLocationUpdate: (LatLng pos) =>
+//            print("onLocationUpdate ${pos.toString()}"),
+//        updateMapLocationOnPositionChange: false,
+//        showMoveToCurrentLocationFloatingActionButton: false,
+//        zoomToCurrentLocationOnLoad: false,
+//        fabBottom: 50,
+//        fabRight: 50,
+//        verbose: false,
+//        onTapFAB: onTapFAB);
+
+    _tileLayerOptions = TileLayerOptions(widget.imageAssets, _spherize, _size,
+//                        urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+//            urlTemplate:
+//                "https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+//                        urlTemplate: "https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/{z}/{x}/{y}.png100?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+//            urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+        urlTemplate:
+            "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
+        subdomains: ['a', 'b', 'c']);
+    _markerLayerOptions = MarkerLayerOptions(_spherize, markers: markers);
+    _tileMarkerLayerOptions =
+        TileMarkerLayerOptions(_spherize, updateInterval: 1000);
+  }
+
+  void beginSphereMode() {
+    _startMapMoveAnimation(zoomSphereLevel, mapController.center);
+  }
+
+  void beginDrawMode() {
+    _startMapMoveAnimation(zoomUnSphereLevel, mapController.center);
   }
 
   void _handleMapMoveAnimation() {
@@ -80,8 +340,16 @@ class _SphereMapState extends State<SphereMap> with TickerProviderStateMixin {
     });
   }
 
-  void placeMarkerAtCurentPos() {
-    placeMarker(mapController.center);
+  void placeMarkerAtCurentPos() async {
+//    placeMarker(mapController.center);
+    if (_textFieldData.length > 0) {
+      await network
+          .createPost(Post(0, _textFieldData, mapController.center, -1));
+    }
+  }
+
+  void textFieldChange(String newText) {
+    _textFieldData = newText;
   }
 
   onTapFAB() {
@@ -103,7 +371,7 @@ class _SphereMapState extends State<SphereMap> with TickerProviderStateMixin {
         point: point,
         width: 20,
         height: 20.0,
-        builder: (context) {
+        builder: (context, scale) {
           return GestureDetector(
               onTap: () {
                 print("POINT HAS BEEN CLICKED!");
@@ -135,7 +403,7 @@ class _SphereMapState extends State<SphereMap> with TickerProviderStateMixin {
         height: 20.0,
         width: 20.0,
         point: point,
-        builder: (context) {
+        builder: (context, scale) {
           return GestureDetector(
               onTap: () {
                 double newZoom;
@@ -171,73 +439,79 @@ class _SphereMapState extends State<SphereMap> with TickerProviderStateMixin {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        curvedTextBox(inputWidth - (spacing * 3), barHeight),
+        curvedTextBox(inputWidth - (spacing * 3), barHeight, textFieldChange),
         sendButton(buttonWidth, barHeight, placeMarkerAtCurentPos),
       ],
     );
   }
 
+  Widget buildNavBar() {
+//    return BottomNavigationBar(
+//      items: const <BottomNavigationBarItem>[
+//        BottomNavigationBarItem(
+//          icon: Icon(Icons.person_outline),
+//          title: Text(''),
+//        ),
+//        BottomNavigationBarItem(
+//          icon: Icon(Icons.language),
+//          title: Text(''),
+//        ),
+//        BottomNavigationBarItem(
+//          icon: Icon(Icons.brush),
+//          title: Text(''),
+//        ),
+//      ],
+//      currentIndex: _navBarIndex,
+//      selectedItemColor: Colors.amber[800],
+//      onTap: (index)=>{setState(() {_navBarIndex = index;})},
+//    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    var query = MediaQuery.of(context);
-    var size = query.size;
-    final double scaleFactor = 0.5;
-    var spherize =
-        Spherize(size.width.toInt(), size.height.toInt(), scaleFactor);
-    var bottomPos = query.viewInsets.bottom;
-
-    userLocationOptions = UserLocationOptions(null,
-        context: context,
-        mapController: mapController,
-        markers: markers,
-        onLocationUpdate: (LatLng pos) =>
-            print("onLocationUpdate ${pos.toString()}"),
-        updateMapLocationOnPositionChange: false,
-        showMoveToCurrentLocationFloatingActionButton: false,
-        zoomToCurrentLocationOnLoad: false,
-        fabBottom: 50,
-        fabRight: 50,
-        verbose: false,
-        onTapFAB: onTapFAB);
+//    var bottomPos = query.viewInsets.bottom;
 
     return Material(
         child: Stack(children: [
       FlutterMap(
         options: new MapOptions(
-          spherize,
+          _spherize,
           center: new LatLng(51.864703, -2.245356),
-          zoom: 12.0,
+          zoom: widget.isSphere ? zoomSphereLevel : zoomUnSphereLevel,
           onTap: TapCallback,
           onLongPress: LongPressCallback,
           zoomSphereLevel: zoomSphereLevel,
           zoomUnSphereLevel: zoomUnSphereLevel,
           plugins: [
-            UserLocationPlugin(),
+//            UserLocationPlugin(),
+            TileMarkerPlugin(),
           ],
         ),
         layers: [
-          new TileLayerOptions(widget.imageAssets, spherize,
-//                        urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-//            urlTemplate:
-//                "https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-//                        urlTemplate: "https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/{z}/{x}/{y}.png100?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-//            urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-              urlTemplate:
-                  "https://api.mapbox.com/styles/v1/naoh1/ckc2i7x1o04a61ip84c8zpnx1/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibmFvaDEiLCJhIjoiY2tiZHR5NHdhMGZjaTJyczcyeG45djIzaCJ9.TWAMfj-G7lGxM0WSQOGUnA",
-              subdomains: ['a', 'b', 'c']),
-          new MarkerLayerOptions(spherize, markers: markers),
-          userLocationOptions,
+          _tileLayerOptions,
+          _markerLayerOptions,
+//          _userLocationOptions,
+          _tileMarkerLayerOptions,
         ],
         mapController: mapController,
       ),
 //      Positioned(child: curvedTextBox(), ),
-      Positioned(
-        child: buildMessageBar(size.width, size.height, 47, 47, 5),
-        left: 5,
-        right: 5,
-        bottom: bottomPos + 5,
-      ),
+//      Positioned(
+////        child: buildMessageBar(size.width, size.height, 47, 47, 5),
+//        child: buildNavBar(),
+////        left: 5,
+////        right: 5,
+//        left: 0,
+//        right: 0,
+//        bottom: bottomPos// + 5,
+//      ),
 //      Align(alignment: Alignment.bottomCenter, child: curvedTextBox()),
     ]));
+  }
+
+  @override
+  dispose() {
+    _doubleTapController.dispose();
+    super.dispose();
   }
 }

@@ -20,7 +20,7 @@ Widget sendButton(double width, double height, VoidCallback callback) {
       ));
 }
 
-Widget curvedTextBox(double width, double height) {
+Widget curvedTextBox(double width, double height, void Function(String) onChanged) {
   return Container(
 //      margin: const EdgeInsets.only(left: 30.0, top: 60.0, right:
 //      30.0),
@@ -33,7 +33,7 @@ Widget curvedTextBox(double width, double height) {
       child: TextField(
 //            controller: null,
 //            autofocus: false,
-
+        onChanged: onChanged,
         style: new TextStyle(fontSize: 22.0, color: Color(0xFF0F0F0F)),
         decoration: new InputDecoration(
           filled: true,

@@ -8,7 +8,7 @@ void main() => runApp(MyApp());
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-
+//    SystemChrome.setEnabledSystemUIOverlays([]);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Color(0x00FFFFFF),
     ));
@@ -18,5 +18,6 @@ class MyApp extends StatelessWidget {
       theme: getTheme(),
       onGenerateRoute: RouteGenerator.generateRoute,
     );
+
   }
 }

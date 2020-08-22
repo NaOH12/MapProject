@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutterapp/ui_elements.dart';
+//import 'package:flutterapp/ui_elements.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/src/core/point.dart';
@@ -19,7 +19,8 @@ class FlutterMapState extends MapGestureMixin {
   double rotation = 0.0;
 
   @override
-  MapOptions get options => widget.options ?? MapOptions();
+//  MapOptions get options => widget.options ?? MapOptions();
+  MapOptions get options => widget.options;
 
   @override
   MapState mapState;

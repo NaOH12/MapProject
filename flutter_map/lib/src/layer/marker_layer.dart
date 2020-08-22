@@ -3,10 +3,15 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/src/core/bounds.dart';
 import 'package:flutter_map/src/map/map.dart';
 import 'package:latlong/latlong.dart';
+import 'package:flutter_map/src/spherize_tiles.dart';
+
+typedef MarkerBuilder = Widget Function(
+    BuildContext context, double scale);
 
 class MarkerLayerOptions extends LayerOptions {
   final List<Marker> markers;
-  MarkerLayerOptions({this.markers = const [], rebuild})
+  final Spherize spherize;
+  MarkerLayerOptions(this.spherize, {this.markers = const [], rebuild})
       : super(rebuild: rebuild);
 }
 
@@ -73,7 +78,7 @@ enum AnchorAlign {
 
 class Marker {
   final LatLng point;
-  final WidgetBuilder builder;
+  final MarkerBuilder builder;
   final double width;
   final double height;
   final Anchor anchor;
@@ -116,10 +121,25 @@ class MarkerLayer extends StatelessWidget {
           pos = pos.multiplyBy(map.getZoomScale(map.zoom, map.zoom)) -
               map.getPixelOrigin();
 
-          var pixelPosX =
-              (pos.x - (markerOpt.width - markerOpt.anchor.left)).toDouble();
-          var pixelPosY =
-              (pos.y - (markerOpt.height - markerOpt.anchor.top)).toDouble();
+//          var pixelPosX =
+//              (pos.x - (markerOpt.width - markerOpt.anchor.left)).toDouble();
+//          var pixelPosY =
+//              (pos.y - (markerOpt.height - markerOpt.anchor.top)).toDouble();
+          var pixelPos = CustomPoint(
+              pos.x - (markerOpt.width - markerOpt.anchor.left),
+              pos.y - (markerOpt.height - markerOpt.anchor.top));
+
+          if (pixelPos.x >= 0 &&
+              pixelPos.x < markerOpts.spherize.width &&
+              pixelPos.y >= 0 &&
+              pixelPos.y < markerOpts.spherize.height) {
+            pixelPos = markerOpts.spherize.getPoint(
+                (pos.x - (markerOpt.width - markerOpt.anchor.left)).toInt(),
+                (pos.y - (markerOpt.height - markerOpt.anchor.top)).toInt(),
+                0,
+                0,
+                map.spherizeVal);
+          }
 
           if (!_boundsContainsMarker(markerOpt)) {
             continue;
@@ -129,9 +149,12 @@ class MarkerLayer extends StatelessWidget {
             Positioned(
               width: markerOpt.width,
               height: markerOpt.height,
-              left: pixelPosX,
-              top: pixelPosY,
-              child: markerOpt.builder(context),
+              left: pixelPos.x,
+              top: pixelPos.y,
+              child: markerOpt.builder(
+                context,
+                1,
+              ),
             ),
           );
         }

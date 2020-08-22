@@ -9,12 +9,11 @@ import 'package:flutter_map/src/core/util.dart' as util;
 import 'package:flutter_map/src/geo/crs/crs.dart';
 import 'package:flutter_map/src/layer/tile_provider/tile_provider.dart';
 import 'package:flutter_map/src/map/map.dart';
+import 'package:flutter_map/src/spherize_tiles.dart';
 import 'package:latlong/latlong.dart';
 import 'package:tuple/tuple.dart';
 
 import 'layer.dart';
-
-import 'package:flutterapp/spherize_widget.dart';
 
 Queue<Tile> queue;
 
@@ -159,7 +158,11 @@ class TileLayerOptions extends LayerOptions {
 
   final Map<String, ui.Image> assetImages;
 
-  TileLayerOptions(
+  final Spherize spherize;
+
+  final Size size;
+
+  TileLayerOptions(this.assetImages, this.spherize, this.size,
       {this.urlTemplate,
       this.tileSize = 256.0,
       this.minZoom = 0.0,
@@ -179,7 +182,6 @@ class TileLayerOptions extends LayerOptions {
       // ignore: avoid_init_to_null
       this.wmsOptions = null,
       this.opacity = 1.0,
-      this.assetImages,
       // Tiles will not update more than once every `updateInterval` milliseconds
       // (default 200) when panning.
       // It can be 0 (but it will calculating for loading tiles every frame when panning / zooming, flutter is fast)
@@ -376,21 +378,22 @@ class _TileLayerState extends State<TileLayer> with TickerProviderStateMixin {
 //    tileWidgets.add(builder);
 
     var tilesToRender = _tiles.values.toList()..sort();
-    var size = MediaQuery.of(context).size;
-    var scaleFactor = 0.7;
+//    var size = MediaQuery.of(context).size;
+    var size = options.size;
+    var scaleFactor = options.spherize.scaleFactor;
     var scaledSize =
         Size(size.width, (size.height * scaleFactor).toInt().toDouble());
-    var variableScaledSize = Size(
-        size.width,
-        (size.height *
-                (scaleFactor +
-                    ((1.0 - scaleFactor) * (1 - widget.mapState.spherizeVal))))
-            .toInt()
-            .toDouble());
+//    var variableScaledSize = Size(
+//        size.width,
+//        (size.height *
+//                (scaleFactor +
+//                    ((1.0 - scaleFactor) * (1 - widget.mapState.spherizeVal))))
+//            .toInt()
+//            .toDouble());
 //    print((scaleFactor +
 //        ((1.0 - scaleFactor) * (1 - widget.mapState.spherizeVal))).toString());
-    var spherize = Spherize(
-        size.width.toInt(), size.height.toInt(), scaleFactor);
+//    var spherize = Spherize(
+//        size.width.toInt(), size.height.toInt(), scaleFactor);
 
 //    var topOffset = (size.height - scaledSize.height) / 2;
 //    return Positioned(
@@ -406,7 +409,7 @@ class _TileLayerState extends State<TileLayer> with TickerProviderStateMixin {
                 scaledSize,
                 tilesToRender,
                 Size(getTileSize().x, getTileSize().y),
-                spherize,
+                options.spherize,
                 options.assetImages['earth_overlay'],
                 widget.mapState.spherizeVal),
             child: Container(
@@ -895,7 +898,7 @@ class _TileLayerState extends State<TileLayer> with TickerProviderStateMixin {
       tile.startFadeInAnimation(options.tileFadeInDuration, this);
     }
 
-    setState(() {});
+    if (mounted) setState(() {});
 
     if (_noTilesToLoad()) {
       // Wait a bit more than tileFadeInDuration (the duration of the tile fade-in)
@@ -905,7 +908,7 @@ class _TileLayerState extends State<TileLayer> with TickerProviderStateMixin {
             ? options.tileFadeInDuration + const Duration(milliseconds: 50)
             : const Duration(milliseconds: 50),
         () {
-          setState(_pruneTiles);
+          if (mounted) setState(_pruneTiles);
         },
       );
     }

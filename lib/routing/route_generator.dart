@@ -41,7 +41,7 @@ class RouteGenerator {
         }
         return null;
       case '/map':
-        return MaterialPageRoute(builder: (context) => SphereMapPage());
+        return MaterialPageRoute(builder: (context) => HomePage());
     }
   }
 }

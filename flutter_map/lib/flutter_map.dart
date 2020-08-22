@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/src/geo/crs/crs.dart';
 import 'package:flutter_map/src/map/flutter_map_state.dart';
 import 'package:flutter_map/src/map/map.dart';
+import 'package:flutter_map/src/spherize_tiles.dart';
 import 'package:flutter_map/src/plugins/plugin.dart';
 import 'package:latlong/latlong.dart';
 
@@ -128,8 +129,10 @@ class MapOptions {
   LatLng nePanBoundary;
   final double zoomSphereLevel;
   final double zoomUnSphereLevel;
+  final Spherize spherize;
 
-  MapOptions({
+  MapOptions(
+    this.spherize, {
     this.crs = const Epsg3857(),
     this.center,
     this.zoom = 13.0,
