@@ -43,29 +43,80 @@ class Post extends BasePost {
 
 class ArtPost extends BasePost {
   final int postId;
-  final LatLng point;
+  LatLng point;
+  double rotation;
   final int tileId;
 
-  ArtPost(this.postId, this.point, this.tileId);
+  ArtPost(this.postId, this.point, this.tileId, this.rotation);
 
-  @override
-  factory ArtPost.fromJson(Map<String, dynamic> json) => new ArtPost(
-        json['id'],
-        LatLng(json['latitude'], json['longitude']),
-        json['tile_id'],
-      );
+//  factory ArtPost.fromJson(Map<String, dynamic> json) => new ArtPost(
+//        json['id'],
+//        LatLng(json['latitude'], json['longitude']),
+//        json['tile_id'],
+//        json['rotation'],
+//      );
 
-  @override
-  factory ArtPost.fromJsonWithTileId(Map<String, dynamic> json, int tileId) =>
-      new ArtPost(
-        json['id'],
-        LatLng(json['latitude'], json['longitude']),
-        tileId,
-      );
+//  factory ArtPost.fromJsonWithTileId(Map<String, dynamic> json, int tileId) =>
+//      new ArtPost(
+//        json['id'],
+//        LatLng(json['latitude'], json['longitude']),
+//        tileId,
+//        json['rotation'],
+//      );
 
   Map<String, dynamic> toJson() => {
         "id": postId,
         "latitude": point.latitude,
         "longitude": point.longitude,
+        "rotation": rotation,
       };
+}
+
+class TextArtPost extends ArtPost {
+  String textContent;
+  int colour;
+  int font;
+  double size;
+
+  TextArtPost(int postId, LatLng point, int tileId, double rotation,
+      this.textContent, this.colour, this.font, this.size)
+      : super(postId, point, tileId, rotation);
+
+  @override
+  factory TextArtPost.fromJson(Map<String, dynamic> json) => new TextArtPost(
+    json['id'],
+    LatLng(json['latitude'], json['longitude']),
+    json['tile_id'],
+    json['rotation'],
+    json['postable']['text_content'],
+    json['postable']['colour'],
+    json['postable']['font'],
+    json['postable']['size'],
+  );
+
+  @override
+  factory TextArtPost.fromJsonWithTileId(Map<String, dynamic> json, int tileId) =>
+      new TextArtPost(
+        json['id'],
+        LatLng(json['latitude'], json['longitude']),
+        tileId,
+        json['rotation'],
+        json['postable']['text_content'],
+        json['postable']['colour'],
+        json['postable']['font'],
+        json['postable']['size'],
+      );
+
+  @override
+  Map<String, dynamic> toJson() => {
+    "id": postId,
+    "latitude": point.latitude,
+    "longitude": point.longitude,
+    "rotation": rotation,
+    "text_content": textContent,
+    "colour": colour,
+    "font": font,
+    "size": size,
+  };
+
 }

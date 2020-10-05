@@ -15,6 +15,8 @@ class MapControllerImpl implements MapController {
   @override
   Future<Null> get onReady => _readyCompleter.future;
 
+  MapState get state => _state;
+
   set state(MapState state) {
     _state = state;
     if (!_readyCompleter.isCompleted) {
@@ -120,6 +122,15 @@ class MapState {
       _spherizeVal = ((options.zoomUnSphereLevel - options.zoomSphereLevel) - (_zoom - options.zoomSphereLevel)) /
           (options.zoomUnSphereLevel - options.zoomSphereLevel);
     }
+  }
+
+  LatLng offsetToCrs(Offset offset, double width, double height) {
+    var localPoint = CustomPoint(offset.dx, offset.dy);
+    var localPointCenterDistance =
+    CustomPoint((width / 2) - localPoint.x, (height / 2) - localPoint.y);
+    var mapCenter = project(center);
+    var point = mapCenter - localPointCenterDistance;
+    return unproject(point);
   }
 
   double get spherizeVal {

@@ -45,7 +45,9 @@ dependencies:
   user_location:
     path: ./user_location_plugin
   flutter_compass: any
-  
+  keyboard_visibility: any
+#  matrix_gesture_detector: any
+  flutter_xlider: any
 
 
 dev_dependencies:

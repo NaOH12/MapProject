@@ -80,6 +80,8 @@ abstract class MapController {
   /// through the [options] parameter.
   void fitBounds(LatLngBounds bounds, {FitBoundsOptions options});
 
+  MapState get state;
+
   bool get ready;
 
   Future<Null> get onReady;

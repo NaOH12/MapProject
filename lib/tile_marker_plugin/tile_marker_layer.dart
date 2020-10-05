@@ -135,6 +135,9 @@ class _TileMarkerLayerState extends State<TileMarkerLayer>
   StreamController<LatLng> _throttleUpdate;
   CustomPoint _tileSize;
 
+  final TileMarkerProvider _tilePostMarkerProvider = TilePostMarkerProvider();
+  final TileMarkerProvider _tileArtMarkerProvider = TileArtMarkerProvider();
+
   final Map<String, TileMarker> _tiles = {};
   final Map<double, Level> _levels = {};
 
@@ -225,14 +228,12 @@ class _TileMarkerLayerState extends State<TileMarkerLayer>
                 (fadeRadius - squaredDistance) / (fadeRadius - squaredRadius);
             final sizeScale =
             (((1 - (squaredDistance / squaredRadius)) * 0.4) + 0.6) * fade;
-            final width = marker.width;
-            final height = marker.height;
             markers.add(
               Positioned(
-                width: width,
-                height: height,
-                left: pixelPos.x - (width / 2),
-                top: pixelPos.y - (height / 2),
+                width: marker.width,
+                height: marker.height,
+                left: pixelPos.x - (marker.width / 2),
+                top: pixelPos.y - (marker.height / 2),
                 child: Opacity(
                     opacity: fade, child: marker.builder(context, sizeScale)),
               ),
@@ -780,15 +781,21 @@ class _TileMarkerLayerState extends State<TileMarkerLayer>
       }
 
       // Make a batch request for tile post data and then make tile
-      _batchLoadTileData(queue, newlyCreated);
+      _batchLoadTileData(queue, newlyCreated, _tileZoom);
     }
   }
 
   void _batchLoadTileData(
-      List<Coords<num>> coords, List<TileMarker> tiles) async {
+      List<Coords<num>> coords, List<TileMarker> tiles, double zoom) async {
+
     // Tell the provider to make batch request
-    List<List<PostMarker>> newMarkers =
-        await options.postTileProvider.getMarkerData(coords, tiles, options);
+    // This method will set data to the passed tiles
+    // We check zoom level to determine which marker provider to use
+    if (zoom == options.postZoom) {
+      await _tilePostMarkerProvider.getMarkerData(coords, tiles, options);
+    } else if (zoom == options.stampZoom) {
+      await _tileArtMarkerProvider.getMarkerData(coords, tiles, options);
+    }
 
     // Iterate over tiles and declare ready
     for (final tile in tiles) {
@@ -846,8 +853,8 @@ class _TileMarkerLayerState extends State<TileMarkerLayer>
       tilePos: _getTilePos(coords),
       current: true,
       level: _levels[coords.z],
-      markerProvider:
-          (options.postZoom == coords.z) ? options.postTileProvider : null,
+//      markerProvider:
+//          (options.postZoom == coords.z) ? _tilePostMarkerProvider : null,
       tileReady: _tileReady,
     );
     return _tiles[tileCoordsToKey];
@@ -931,7 +938,7 @@ class TileMarker implements Comparable<TileMarker> {
   final Coords<double> coords;
   final Coords<double> wrapCoords;
   final CustomPoint<num> tilePos;
-  final TileMarkerProvider markerProvider;
+//  final TileMarkerProvider markerProvider;
 
   final Level level;
 
@@ -961,7 +968,7 @@ class TileMarker implements Comparable<TileMarker> {
     this.wrapCoords,
     this.options,
     this.tilePos,
-    this.markerProvider,
+//    this.markerProvider,
     this.tileReady,
     this.level,
     this.current = false,

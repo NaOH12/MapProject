@@ -21,3 +21,24 @@ class PostMarker extends Marker {
   );
 
 }
+
+class ArtPostMarker extends Marker {
+
+  final ArtPost post;
+
+  ArtPostMarker({
+    this.post,
+    point,
+    width,
+    builder,
+    height,
+    AnchorPos anchorPos,
+  }) : super(
+    point: point,
+    builder: builder,
+    width: width,
+    height: height,
+    anchorPos: anchorPos,
+  );
+
+}

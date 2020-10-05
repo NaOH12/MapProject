@@ -86,8 +86,8 @@ class Marker {
   Marker({
     this.point,
     this.builder,
-    this.width = 30.0,
-    this.height = 30.0,
+    this.width,
+    this.height,
     AnchorPos anchorPos,
   }) : anchor = Anchor.forPos(anchorPos, width, height);
 }

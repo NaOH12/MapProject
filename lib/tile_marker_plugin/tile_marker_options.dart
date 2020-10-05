@@ -97,7 +97,7 @@ class TileMarkerLayerOptions extends LayerOptions {
   /// Furthermore you create your custom implementation by subclassing
   /// TileProvider
   ///
-  final TileMarkerProvider postTileProvider = TilePostProvider();
+//  final TileMarkerProvider postTileProvider = TilePostProvider();
 
   /// When panning the map, keep this many rows and columns of tiles before
   /// unloading them.
@@ -141,6 +141,8 @@ class TileMarkerLayerOptions extends LayerOptions {
   final double postZoom;
   final double stampZoom;
 
+  final List<Marker> markers;
+
   TileMarkerLayerOptions(this.spherize,
       {
         this.postZoom = 12.0,
@@ -158,6 +160,7 @@ class TileMarkerLayerOptions extends LayerOptions {
         this.tms = false,
         this.opacity = 1.0,
         this.postBuilder,
+        this.markers,
         // Tiles will not update more than once every `updateInterval` milliseconds
         // (default 200) when panning.
         // It can be 0 (but it will calculating for loading tiles every frame when panning / zooming, flutter is fast)
